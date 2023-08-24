@@ -3,15 +3,18 @@ import Link from "next/link";
 
 const Page = async () => {
   const result = await fetchEmployees(1, 30);
-  // console.log(result);
 
   return (
     <section className="container mt-5 mb-10">
       <div className="flex gap-5">
         <div>
-          <Link href="/dashboard/create-employee" className="link">
-            Onboard New Employee
-          </Link>
+          <ul>
+            <li>
+              <Link href="/dashboard/manage-employee" className="link">
+                Onboard New Employee
+              </Link>
+            </li>
+          </ul>
         </div>
 
         <div>
@@ -24,6 +27,9 @@ const Page = async () => {
                   <h3 className="text-xl">{employee.name}</h3>
                   <p className="dark:text-neutral-400">{employee.email}</p>
                   <p className="dark:text-neutral-400">{employee.role}</p>
+                  <Link href={`/dashboard/manage-employee/${employee._id}`}>
+                    Manage
+                  </Link>
                 </li>
               ))}
             </ul>
