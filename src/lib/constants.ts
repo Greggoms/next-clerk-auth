@@ -8,3 +8,14 @@ export const navLinks = [
     text: "Dashboard",
   },
 ];
+
+export const roles = [
+  "default",
+  "sfManager",
+  "vhdManager",
+  "distManager",
+  "hr",
+  "admin",
+  "mod",
+  "revoked",
+];

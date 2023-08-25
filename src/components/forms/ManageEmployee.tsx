@@ -2,15 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-hot-toast";
+import Select, { MultiValue, SingleValue } from "react-select";
 
 import { fetchEmployee, manageEmployee } from "@/lib/actions/user.actions";
 import { manageUserFormSchema } from "@/lib/validations/manage-user-form";
+import { roles } from "@/lib/constants";
 
 interface Props {
   userId?: string;
+}
+
+interface IRoleOptions {
+  value: string;
+  label: string;
+}
+
+interface SelectProps {
+  id: string;
+  options: [{ label: string; value: string }];
+  value: string[] | string;
+  onChange: Function;
+  isMulti: boolean;
+  isError: boolean;
+  placeholder: string;
 }
 
 const ManageEmployeeForm = ({ userId }: Props) => {
@@ -54,8 +71,9 @@ const ManageEmployeeForm = ({ userId }: Props) => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isDirty },
-  } = useForm({
+  } = useForm<ManageEmployeeFormValues>({
     resolver: zodResolver(manageUserFormSchema),
     defaultValues: userId
       ? async () => {
@@ -89,6 +107,10 @@ const ManageEmployeeForm = ({ userId }: Props) => {
       setBackendError(error.message);
     }
   };
+
+  const roleOptions: IRoleOptions[] = roles.map((role) => {
+    return { value: role, label: role };
+  });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -126,7 +148,7 @@ const ManageEmployeeForm = ({ userId }: Props) => {
           )}
         </div>
         <div className="form_group">
-          <label htmlFor="name">Name</label>
+          <label htmlFor="name">Full Name</label>
           <input
             id="name"
             {...register("name")}
@@ -140,18 +162,65 @@ const ManageEmployeeForm = ({ userId }: Props) => {
         </div>
         <div className="form_group">
           <label htmlFor="role">Role</label>
-          <select
-            id="role"
-            {...register("role")}
-            className={`p-2 outline-none focus:dark:outline-sky-700 ${
-              errors.role && "dark:outline-red-700"
-            }`}
-          >
-            <option value="">--Please select a role--</option>
-            <option value="default">Default</option>
-            <option value="admin">Admin</option>
-            <option value="developer">Developer</option>
-          </select>
+          <Controller
+            control={control}
+            name="role"
+            render={({ field: { onChange, value, ref } }) => {
+              const currentSelection = roleOptions.find(
+                (c) => c.value === value
+              );
+
+              const handleSelectChange = (
+                selectedOption: MultiValue<IRoleOptions> | null
+              ) => {
+                console.log(selectedOption);
+                onChange(selectedOption?.values);
+              };
+
+              return (
+                <CustomSelect
+                  id="role"
+                  placeholder="--Select Role--"
+                  options={roleOptions}
+                  value={currentSelection}
+                  isMulti
+                  onChange={handleSelectChange}
+                />
+
+                // // Define each at a time if I can't figure out the typescript..
+                // // This has the downfall of repeating the same custom classeNames
+                // // on every Select input.
+                // // I think the error only occurs when attempting to configure isMulti.
+                // <Select
+                //   ref={ref}
+                //   id="role"
+                //   placeholder="--Select Role--"
+                //   options={roleOptions}
+                //   value={currentSelection}
+                //   onChange={handleSelectChange}
+                //   unstyled
+                //   // https://react-select.com/styles#inner-components
+                //   classNames={{
+                //     container: () =>
+                //       `${errors.role && "outline outline-1 outline-red-600"}`,
+                //     valueContainer: () => "flex flex-col",
+                //     multiValue: () => "self-start",
+                //     multiValueRemove: () =>
+                //       "text-amber-500 hover:bg-amber-500/50",
+                //     control: () => "px-2 bg-neutral-50 dark:bg-neutral-700",
+                //     indicatorSeparator: () => "bg-neutral-500 mx-2",
+                //     menu: () => "bg-neutral-200 dark:bg-neutral-800",
+                //     input: () => "self-start",
+                //     option: ({ data, isDisabled, isFocused, isSelected }) =>
+                //       `p-2 hover:bg-neutral-300 dark:hover:bg-neutral-500 ${
+                //         isFocused ? "bg-neutral-300 dark:bg-neutral-500" : ""
+                //       }`,
+                //   }}
+                // />
+              );
+            }}
+          />
+
           {errors.role?.message && (
             <p className="form_error">{errors.role.message as string}</p>
           )}
@@ -174,3 +243,48 @@ const ManageEmployeeForm = ({ userId }: Props) => {
 };
 
 export default ManageEmployeeForm;
+
+function CustomSelect({
+  id,
+  options,
+  value,
+  onChange,
+  isMulti,
+  isError,
+  placeholder,
+}: SelectProps) {
+  return (
+    <Select
+      id={id}
+      options={options}
+      value={
+        isMulti
+          ? options.filter((el) => value?.includes(el.value))
+          : options.find((c) => c.value === value)
+      }
+      onChange={(val) =>
+        isMulti && Array.isArray(val)
+          ? onChange(val.map((c) => c.value))
+          : onChange(val)
+      }
+      isMulti={isMulti}
+      placeholder={placeholder}
+      unstyled
+      // https://react-select.com/styles#inner-components
+      classNames={{
+        container: () => `${isError && "outline outline-1 outline-red-600"}`,
+        valueContainer: () => "flex flex-col",
+        multiValue: () => "self-start",
+        multiValueRemove: () => "text-amber-500 hover:bg-amber-500/50",
+        control: () => "px-2 bg-neutral-50 dark:bg-neutral-700",
+        indicatorSeparator: () => "bg-neutral-500 mx-2",
+        menu: () => "bg-neutral-200 dark:bg-neutral-800",
+        input: () => "self-start",
+        option: ({ data, isDisabled, isFocused, isSelected }) =>
+          `p-2 hover:bg-neutral-300 dark:hover:bg-neutral-500 ${
+            isFocused ? "bg-neutral-300 dark:bg-neutral-500" : ""
+          }`,
+      }}
+    />
+  );
+}
